@@ -122,7 +122,7 @@ def render(table_name: str, username: str) -> None:
                 st.session_state[cache_key].at[idx[0], col] = row[col]
 
     # Pagination controls
-    p_col1, p_col2, p_col3 = st.columns([1, 4, 1])
+    p_col1, p_col2, p_col3, p_col4 = st.columns([1, 2, 2, 1])
     with p_col1:
         if st.button("← Prec.", disabled=page_num <= 1, key=f"prev_{table_name}"):
             st.session_state[page_key] -= 1
@@ -130,6 +130,19 @@ def render(table_name: str, username: str) -> None:
     with p_col2:
         st.caption(f"Pagina {page_num} / {total_pages}  |  {total_rows} righe totali")
     with p_col3:
+        jump = st.number_input(
+            "Vai a pagina",
+            min_value=1,
+            max_value=total_pages,
+            value=page_num,
+            step=1,
+            label_visibility="collapsed",
+            key=f"jump_{table_name}",
+        )
+        if jump != page_num:
+            st.session_state[page_key] = int(jump)
+            st.rerun()
+    with p_col4:
         if st.button("Succ. →", disabled=page_num >= total_pages, key=f"next_{table_name}"):
             st.session_state[page_key] += 1
             st.rerun()
