@@ -19,7 +19,7 @@ import streamlit_authenticator as stauth
 from app.config.logging_setup import configure_logging
 from app.config.table_config import GROUP_TABLES, REPORT_CONFIG, TABLE_CONFIG, ROLE_PERMISSIONS
 from app.db.connection import get_public_tables
-from app.pages import editable_table, reports
+from app._pages import editable_table, reports
 
 configure_logging()
 logger = logging.getLogger(__name__)
