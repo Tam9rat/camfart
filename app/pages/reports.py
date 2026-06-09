@@ -2,6 +2,12 @@
 from __future__ import annotations
 
 import logging
+import pathlib
+import sys
+
+_ROOT = pathlib.Path(__file__).parent.parent.parent
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
 
 import pandas as pd
 import streamlit as st

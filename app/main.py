@@ -4,6 +4,12 @@ from __future__ import annotations
 import base64
 import logging
 import pathlib
+import sys
+
+# Ensure project root is on sys.path so 'app' package is importable
+_ROOT = pathlib.Path(__file__).parent.parent
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
 
 import streamlit as st
 import yaml
