@@ -73,13 +73,21 @@ def render(table_name: str, username: str) -> None:
         save_clicked = st.button("Salva", use_container_width=True, key=f"btn_save_{table_name}")
 
     # ── Search filter across full dataset ─────────────────────────────────────
+    search_cache_key = f"search_result_{table_name}"
+    last_search_key  = f"last_search_{table_name}"
+
     if search:
-        mask = df.astype(str).apply(
-            lambda col: col.str.contains(search, case=False, na=False)
-        ).any(axis=1)
-        filtered_df = df[mask]
-        st.session_state[f"page_{table_name}"] = 1
+        if st.session_state.get(last_search_key) != search:
+            mask = df.astype(str).apply(
+                lambda col: col.str.contains(search, case=False, na=False)
+            ).any(axis=1)
+            st.session_state[search_cache_key] = df[mask]
+            st.session_state[last_search_key]  = search
+            st.session_state[f"page_{table_name}"] = 1
+        filtered_df = st.session_state[search_cache_key]
     else:
+        st.session_state.pop(search_cache_key, None)
+        st.session_state.pop(last_search_key, None)
         filtered_df = df
 
     # ── Pagination ─────────────────────────────────────────────────────────────
