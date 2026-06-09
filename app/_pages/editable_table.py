@@ -72,18 +72,17 @@ def render(table_name: str, username: str) -> None:
     with col_save:
         save_clicked = st.button("Salva", use_container_width=True, key=f"btn_save_{table_name}")
 
-    # ── Search filter across full dataset ────────────────────────────────────
+    # ── Search filter across full dataset ─────────────────────────────────────
     if search:
         mask = df.astype(str).apply(
             lambda col: col.str.contains(search, case=False, na=False)
         ).any(axis=1)
         filtered_df = df[mask]
-        # Reset to page 1 when search changes
         st.session_state[f"page_{table_name}"] = 1
     else:
         filtered_df = df
 
-    # ── Pagination ────────────────────────────────────────────────────────────
+    # ── Pagination ─────────────────────────────────────────────────────────────
     total_rows  = len(filtered_df)
     total_pages = max(1, (total_rows + page_size - 1) // page_size)
     page_key    = f"page_{table_name}"
@@ -92,10 +91,10 @@ def render(table_name: str, username: str) -> None:
 
     page_num = min(st.session_state[page_key], total_pages)
     st.session_state[page_key] = page_num
-    start    = (page_num - 1) * page_size
-    page_df  = filtered_df.iloc[start : start + page_size]
+    start   = (page_num - 1) * page_size
+    page_df = filtered_df.iloc[start : start + page_size].copy()
 
-    # ── Editable table ────────────────────────────────────────────────────────
+    # ── Editable table ─────────────────────────────────────────────────────────
     edited_df = st.data_editor(
         page_df,
         column_config={"Flag": st.column_config.CheckboxColumn("Flag", default=False)},
@@ -105,6 +104,14 @@ def render(table_name: str, username: str) -> None:
         disabled=cfg["disabled_cols"],
         key=f"editor_{table_name}_p{page_num}_{search}",
     )
+
+    # Write edits back into the full cached df so they survive page navigation
+    pk_col = cfg["pk"]
+    for _, row in edited_df.iterrows():
+        idx = st.session_state[cache_key][st.session_state[cache_key][pk_col] == row[pk_col]].index
+        if not idx.empty:
+            for col in cfg["editable_cols"]:
+                st.session_state[cache_key].at[idx[0], col] = row[col]
 
     # Pagination controls
     p_col1, p_col2, p_col3 = st.columns([1, 4, 1])
@@ -119,30 +126,26 @@ def render(table_name: str, username: str) -> None:
             st.session_state[page_key] += 1
             st.rerun()
 
-    # ── Save with validation + diff preview ──────────────────────────────────
+    # ── Save directly — no confirm step ───────────────────────────────────────
     if save_clicked:
-        flagged = edited_df[edited_df["Flag"] == True]
+        full_df = st.session_state[cache_key]
+        flagged = full_df[full_df["Flag"] == True]
         if flagged.empty:
             st.warning("Nessuna riga contrassegnata con Flag.")
             return
 
-        errors = validate_flagged_rows(flagged, cfg["editable_cols"], cfg["pk"])
+        errors = validate_flagged_rows(flagged, cfg["editable_cols"], pk_col)
         if errors:
             st.error("Correggere i seguenti errori prima di salvare:")
             for e in errors:
                 st.markdown(f"- {e}")
             return
 
-        with st.expander(f"Anteprima modifiche ({len(flagged)} righe)", expanded=True):
-            st.dataframe(flagged[cfg["editable_cols"]], use_container_width=True)
-
-        confirm_key = f"confirm_save_{table_name}"
-        if st.button("Conferma salvataggio", type="primary", key=confirm_key):
-            try:
-                count = save_flagged_rows(table_name, edited_df, username)
-                st.success(f"Salvato e confermato ({count} righe)")
-                st.session_state[reload_key] = True
-                st.rerun()
-            except Exception as exc:
-                logger.error("save_flagged_rows '%s': %s", table_name, exc)
-                st.error(f"Salvataggio fallito: {exc}")
+        try:
+            count = save_flagged_rows(table_name, full_df, username)
+            st.success(f"Salvato ({count} righe)")
+            st.session_state[reload_key] = True
+            st.rerun()
+        except Exception as exc:
+            logger.error("save_flagged_rows '%s': %s", table_name, exc)
+            st.error(f"Salvataggio fallito: {exc}")
