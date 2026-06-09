@@ -18,7 +18,7 @@ from app.services.validation import validate_flagged_rows
 
 logger = logging.getLogger(__name__)
 
-_PAGE_SIZE_OPTIONS = [50, 100, 200, 500]
+_PAGE_SIZE_OPTIONS = [25, 50, 100, 200]
 
 
 def render(table_name: str, username: str) -> None:
@@ -57,7 +57,7 @@ def render(table_name: str, username: str) -> None:
         page_size = st.selectbox(
             "Righe per pagina",
             _PAGE_SIZE_OPTIONS,
-            index=1,
+            index=0,
             label_visibility="collapsed",
             key=f"page_size_{table_name}",
         )
