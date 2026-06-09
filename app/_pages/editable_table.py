@@ -18,7 +18,7 @@ from app.services.validation import validate_flagged_rows
 
 logger = logging.getLogger(__name__)
 
-_PAGE_SIZE_OPTIONS = [25, 50, 100, 200]
+_PAGE_SIZE = 300
 
 
 def render(table_name: str, username: str) -> None:
@@ -43,7 +43,7 @@ def render(table_name: str, username: str) -> None:
     df = st.session_state[cache_key]
 
     # ── Top bar ───────────────────────────────────────────────────────────────
-    col_title, col_search, col_page, col_refresh, col_save = st.columns([3, 3, 2, 1, 1])
+    col_title, col_search, col_refresh, col_save = st.columns([4, 4, 1, 1])
     with col_title:
         st.markdown(f"### {table_name.replace('_', ' ')}")
     with col_search:
@@ -52,14 +52,6 @@ def render(table_name: str, username: str) -> None:
             placeholder="Cerca in tutte le colonne...",
             label_visibility="collapsed",
             key=f"search_{table_name}",
-        )
-    with col_page:
-        page_size = st.selectbox(
-            "Righe per pagina",
-            _PAGE_SIZE_OPTIONS,
-            index=0,
-            label_visibility="collapsed",
-            key=f"page_size_{table_name}",
         )
     with col_refresh:
         if st.button("Refresh", use_container_width=True, key=f"btn_refresh_{table_name}"):
@@ -92,15 +84,15 @@ def render(table_name: str, username: str) -> None:
 
     # ── Pagination ─────────────────────────────────────────────────────────────
     total_rows  = len(filtered_df)
-    total_pages = max(1, (total_rows + page_size - 1) // page_size)
+    total_pages = max(1, (total_rows + _PAGE_SIZE - 1) // _PAGE_SIZE)
     page_key    = f"page_{table_name}"
     if page_key not in st.session_state:
         st.session_state[page_key] = 1
 
     page_num = min(st.session_state[page_key], total_pages)
     st.session_state[page_key] = page_num
-    start   = (page_num - 1) * page_size
-    page_df = filtered_df.iloc[start : start + page_size].copy()
+    start   = (page_num - 1) * _PAGE_SIZE
+    page_df = filtered_df.iloc[start : start + _PAGE_SIZE].copy()
 
     # ── Editable table ─────────────────────────────────────────────────────────
     edited_df = st.data_editor(
@@ -124,7 +116,7 @@ def render(table_name: str, username: str) -> None:
     # Pagination controls
     p_col1, p_col2, p_col3 = st.columns([2, 1, 2])
     with p_col1:
-        st.markdown(f"<div style='text-align:right;padding-top:8px;color:#666;font-size:0.85rem;'>Pagina</div>", unsafe_allow_html=True)
+        st.markdown("<div style='text-align:right;padding-top:8px;color:#666;font-size:0.85rem;'>Pagina</div>", unsafe_allow_html=True)
     with p_col2:
         jump = st.number_input(
             "p", min_value=1, max_value=total_pages,
