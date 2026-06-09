@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import base64
 import logging
-import os
 import pathlib
 
 import streamlit as st
@@ -15,8 +14,6 @@ from app.config.logging_setup import configure_logging
 from app.config.table_config import GROUP_TABLES, REPORT_CONFIG, TABLE_CONFIG, ROLE_PERMISSIONS
 from app.db.connection import get_public_tables
 from app.pages import editable_table, reports
-from app.services.auth import ensure_users_table, load_users_for_authenticator, get_user_role, record_login
-from app.services.audit import ensure_audit_table
 
 configure_logging()
 logger = logging.getLogger(__name__)
@@ -35,41 +32,16 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# ── Auth bootstrap ────────────────────────────────────────────────────────────
-# Ensure DB users table exists on first run
-if "users_table_checked" not in st.session_state:
-    try:
-        ensure_users_table()
-        ensure_audit_table()
-    except Exception as exc:
-        st.error(f"Errore inizializzazione DB: {exc}")
-        st.stop()
-    st.session_state["users_table_checked"] = True
-
-# Load cookie config (no credentials — those come from DB)
+# ── Auth ──────────────────────────────────────────────────────────────────────
 _config_path = _HERE / "config.yaml"
 with open(_config_path) as _f:
-    _cookie_cfg = yaml.load(_f, Loader=SafeLoader)
-
-# Cookie key from env — never hardcoded
-_cookie_key = os.environ.get("AUTH_COOKIE_KEY", "")
-if not _cookie_key:
-    st.error("AUTH_COOKIE_KEY non configurato. Impostarlo nel file .env.")
-    st.stop()
-
-# Credentials from DB (cached per session to avoid per-rerun queries)
-if "auth_credentials" not in st.session_state:
-    try:
-        st.session_state["auth_credentials"] = load_users_for_authenticator()
-    except Exception as exc:
-        st.error(f"Impossibile caricare gli utenti dal DB: {exc}")
-        st.stop()
+    _cfg = yaml.load(_f, Loader=SafeLoader)
 
 authenticator = stauth.Authenticate(
-    st.session_state["auth_credentials"],
-    _cookie_cfg["cookie"]["name"],
-    _cookie_key,
-    _cookie_cfg["cookie"]["expiry_days"],
+    _cfg["credentials"],
+    _cfg["cookie"]["name"],
+    _cfg["cookie"]["key"],
+    _cfg["cookie"]["expiry_days"],
 )
 
 # ── Login page ────────────────────────────────────────────────────────────────
@@ -136,11 +108,6 @@ if not st.session_state.get("authentication_status"):
 
     status = st.session_state.get("authentication_status")
     if status is True:
-        # Record login timestamp in DB
-        try:
-            record_login(st.session_state.get("username", ""))
-        except Exception:
-            pass
         st.rerun()
     elif status is False:
         st.error("Username o password errati")
@@ -170,9 +137,14 @@ section[data-testid="stSidebar"] {
 </style>
 """, unsafe_allow_html=True)
 
-# ── Role from DB ──────────────────────────────────────────────────────────────
+# ── Role from config ──────────────────────────────────────────────────────────
 username  = st.session_state.get("username", "")
-user_role = get_user_role(username)
+user_role = (
+    _cfg.get("credentials", {})
+        .get("usernames", {})
+        .get(username, {})
+        .get("role", "viewer")
+)
 allowed_tables  = ROLE_PERMISSIONS.get(user_role, {}).get("tables",  [])
 allowed_reports = ROLE_PERMISSIONS.get(user_role, {}).get("reports", [])
 

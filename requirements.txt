@@ -7,5 +7,3 @@ pyodbc>=5.0
 pyyaml>=6.0
 requests>=2.31
 openpyxl>=3.1
-alembic>=1.13
-bcrypt>=4.0

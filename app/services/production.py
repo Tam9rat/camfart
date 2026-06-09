@@ -7,10 +7,9 @@ import logging
 import pandas as pd
 from sqlalchemy import text
 
-from app.db.connection import get_engine, execute_query, load_table_data
+from app.db.connection import get_engine, execute_query
 from app.queries import load as load_sql
 from app.config.table_config import TABLE_CONFIG
-from app.services.audit import write_audit_entries
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +38,6 @@ def save_flagged_rows(table_name: str, edited_df: pd.DataFrame, username: str) -
             pass
         return val
 
-    original_df = load_table_data(table_name)
     pk_col = cfg["pk"]
 
     with get_engine().begin() as conn:
@@ -50,13 +48,6 @@ def save_flagged_rows(table_name: str, edited_df: pd.DataFrame, username: str) -
                 params[col] = bool(val) if col == "Flag" else _clean(val)
             params[pk_col] = int(row[pk_col])
             conn.execute(text(cfg["update_sql"]), params)
-
-            orig_matches = original_df[original_df[pk_col] == row[pk_col]]
-            if not orig_matches.empty:
-                write_audit_entries(
-                    conn, username, table_name, pk_col,
-                    orig_matches.iloc[0], row, cfg["editable_cols"],
-                )
 
         conn.execute(text(load_sql(cfg["confirm_query"])))
 

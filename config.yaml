@@ -1,6 +1,12 @@
-# Cookie settings only — credentials are stored in the [app_users] DB table.
-# AUTH_COOKIE_KEY must be set in your .env file (never commit the real key).
+credentials:
+  usernames:
+    admin:
+      email: admin@camfart.local
+      first_name: Admin
+      last_name: ""
+      password: ""   # fill in with a bcrypt hash — see README
+      role: admin
 cookie:
   expiry_days: 0
   name: camfart_cookie
-  # key is injected at runtime from the AUTH_COOKIE_KEY environment variable
+  key: ""            # fill in a random secret string
