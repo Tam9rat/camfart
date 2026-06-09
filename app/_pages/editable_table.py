@@ -27,8 +27,8 @@ def render(table_name: str, username: str) -> None:
         st.warning(f"Nessuna configurazione per '{table_name}'")
         return
 
-    cache_key   = f"df_{table_name}"
-    reload_key  = f"reload_{table_name}"
+    cache_key  = f"df_{table_name}"
+    reload_key = f"reload_{table_name}"
 
     if cache_key not in st.session_state or st.session_state.get(reload_key):
         with st.spinner("Caricamento dati..."):
@@ -43,9 +43,16 @@ def render(table_name: str, username: str) -> None:
     df = st.session_state[cache_key]
 
     # ── Top bar ───────────────────────────────────────────────────────────────
-    col_title, col_page, col_refresh, col_save = st.columns([4, 2, 1, 1])
+    col_title, col_search, col_page, col_refresh, col_save = st.columns([3, 3, 2, 1, 1])
     with col_title:
         st.markdown(f"### {table_name.replace('_', ' ')}")
+    with col_search:
+        search = st.text_input(
+            "Cerca",
+            placeholder="Cerca in tutte le colonne...",
+            label_visibility="collapsed",
+            key=f"search_{table_name}",
+        )
     with col_page:
         page_size = st.selectbox(
             "Righe per pagina",
@@ -65,16 +72,28 @@ def render(table_name: str, username: str) -> None:
     with col_save:
         save_clicked = st.button("Salva", use_container_width=True, key=f"btn_save_{table_name}")
 
-    # ── Pagination (#18) ─────────────────────────────────────────────────────
-    total_rows = len(df)
+    # ── Search filter across full dataset ────────────────────────────────────
+    if search:
+        mask = df.astype(str).apply(
+            lambda col: col.str.contains(search, case=False, na=False)
+        ).any(axis=1)
+        filtered_df = df[mask]
+        # Reset to page 1 when search changes
+        st.session_state[f"page_{table_name}"] = 1
+    else:
+        filtered_df = df
+
+    # ── Pagination ────────────────────────────────────────────────────────────
+    total_rows  = len(filtered_df)
     total_pages = max(1, (total_rows + page_size - 1) // page_size)
-    page_key = f"page_{table_name}"
+    page_key    = f"page_{table_name}"
     if page_key not in st.session_state:
         st.session_state[page_key] = 1
 
-    page_num = st.session_state[page_key]
+    page_num = min(st.session_state[page_key], total_pages)
+    st.session_state[page_key] = page_num
     start    = (page_num - 1) * page_size
-    page_df  = df.iloc[start : start + page_size]
+    page_df  = filtered_df.iloc[start : start + page_size]
 
     # ── Editable table ────────────────────────────────────────────────────────
     edited_df = st.data_editor(
@@ -84,7 +103,7 @@ def render(table_name: str, username: str) -> None:
         height=680,
         num_rows="fixed",
         disabled=cfg["disabled_cols"],
-        key=f"editor_{table_name}_p{page_num}",
+        key=f"editor_{table_name}_p{page_num}_{search}",
     )
 
     # Pagination controls
@@ -107,7 +126,6 @@ def render(table_name: str, username: str) -> None:
             st.warning("Nessuna riga contrassegnata con Flag.")
             return
 
-        # Validate before showing confirm
         errors = validate_flagged_rows(flagged, cfg["editable_cols"], cfg["pk"])
         if errors:
             st.error("Correggere i seguenti errori prima di salvare:")
@@ -115,7 +133,6 @@ def render(table_name: str, username: str) -> None:
                 st.markdown(f"- {e}")
             return
 
-        # Show preview of what will be saved
         with st.expander(f"Anteprima modifiche ({len(flagged)} righe)", expanded=True):
             st.dataframe(flagged[cfg["editable_cols"]], use_container_width=True)
 
