@@ -6,6 +6,7 @@ import logging
 import pathlib
 import sys
 
+# Ensure project root is on sys.path so 'app' package is importable
 _ROOT = pathlib.Path(__file__).parent.parent
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
@@ -16,11 +17,14 @@ from yaml.loader import SafeLoader
 import streamlit_authenticator as stauth
 
 from app.config.logging_setup import configure_logging
+from app.config.table_config import GROUP_TABLES, REPORT_CONFIG, TABLE_CONFIG, ROLE_PERMISSIONS
+from app.db.connection import get_public_tables
+from app.pages import editable_table, reports
 
 configure_logging()
 logger = logging.getLogger(__name__)
 
-_HERE = pathlib.Path(__file__).parent.parent
+_HERE = pathlib.Path(__file__).parent.parent  # project root
 
 
 def _b64(path: pathlib.Path) -> str:
@@ -139,41 +143,115 @@ section[data-testid="stSidebar"] {
 </style>
 """, unsafe_allow_html=True)
 
+# ── Role from config ──────────────────────────────────────────────────────────
+username  = st.session_state.get("username", "")
+user_role = (
+    _cfg.get("credentials", {})
+        .get("usernames", {})
+        .get(username, {})
+        .get("role", "viewer")
+)
+allowed_tables  = ROLE_PERMISSIONS.get(user_role, {}).get("tables",  [])
+allowed_reports = ROLE_PERMISSIONS.get(user_role, {}).get("reports", [])
+
+logger.info("User '%s' (role=%s) active", username, user_role)
+
 # ── Sidebar ───────────────────────────────────────────────────────────────────
-username = st.session_state.get("username", "")
-logger.info("User '%s' active", username)
+try:
+    db_tables = get_public_tables()
+except Exception as exc:
+    logger.error("get_public_tables: %s", exc)
+    st.error(f"Errore connessione DB: {exc}")
+    db_tables = []
 
 with st.sidebar:
-    st.caption(f"Utente: **{username}**")
+    def _set_group(group: str) -> None:
+        st.session_state["active_group"] = group
+
+    if allowed_tables:
+        st.markdown("**Tabelle**")
+        st.selectbox(
+            "Group 1",
+            ["-- Seleziona --"] + [t for t in GROUP_TABLES["Group 1"] if t in db_tables and t in allowed_tables],
+            key="sel_Group 1",
+            label_visibility="collapsed",
+            on_change=_set_group,
+            args=("Group 1",),
+        )
+
+    if allowed_reports:
+        st.markdown("**Report**")
+        st.selectbox(
+            "Group 2",
+            ["-- Seleziona --"] + [r for r in GROUP_TABLES["Group 2"] if r in allowed_reports],
+            key="sel_Group 2",
+            label_visibility="collapsed",
+            on_change=_set_group,
+            args=("Group 2",),
+        )
+
+    st.divider()
+    st.caption(f"Utente: **{username}**  |  Ruolo: *{user_role}*")
     authenticator.logout("Logout", location="sidebar", use_container_width=True)
 
+# ── Determine selection ───────────────────────────────────────────────────────
+selected = None
+active_group = st.session_state.get("active_group")
+if active_group:
+    val = st.session_state.get(f"sel_{active_group}", "-- Seleziona --")
+    if val and val != "-- Seleziona --":
+        selected = val
+
+if not selected:
+    for g in ["Group 1", "Group 2"]:
+        val = st.session_state.get(f"sel_{g}", "-- Seleziona --")
+        if val and val != "-- Seleziona --":
+            selected = val
+            break
+
 # ── Landing ───────────────────────────────────────────────────────────────────
-logo_b64 = _b64(_HERE / "Logo_Camfart.png")
-st.markdown(f"""
-<style>
-.block-container {{display:flex;justify-content:center;align-items:center;height:80vh;}}
-.logo-container {{text-align:center;animation:fadeIn 1.2s ease-in-out;}}
-.logo-container img {{
-    width:1200px;opacity:1;
-    filter:drop-shadow(0 8px 24px rgba(0,0,0,0.2));
-    transition:transform .4s ease,filter .4s ease;
-}}
-.logo-container img:hover {{
-    transform:scale(1.04);
-    filter:drop-shadow(0 12px 32px rgba(0,0,0,0.35));
-}}
-.logo-subtitle {{
-    margin-top:1.2rem;font-size:1rem;color:#777;
-    letter-spacing:.18em;text-transform:uppercase;
-    font-family:'Segoe UI',sans-serif;
-}}
-@keyframes fadeIn {{
-    from {{opacity:0;transform:translateY(16px);}}
-    to   {{opacity:1;transform:translateY(0);}}
-}}
-</style>
-<div class="logo-container">
-    <img src="data:image/png;base64,{logo_b64}">
-    <div class="logo-subtitle">Sistema di gestione produzione</div>
-</div>
-""", unsafe_allow_html=True)
+if not selected:
+    logo_b64 = _b64(_HERE / "Logo_Camfart.png")
+    st.markdown(f"""
+    <style>
+    .block-container {{display:flex;justify-content:center;align-items:center;height:80vh;}}
+    .logo-container {{text-align:center;animation:fadeIn 1.2s ease-in-out;}}
+    .logo-container img {{
+        width:1200px;opacity:1;
+        filter:drop-shadow(0 8px 24px rgba(0,0,0,0.2));
+        transition:transform .4s ease,filter .4s ease;
+    }}
+    .logo-container img:hover {{
+        transform:scale(1.04);
+        filter:drop-shadow(0 12px 32px rgba(0,0,0,0.35));
+    }}
+    .logo-subtitle {{
+        margin-top:1.2rem;font-size:1rem;color:#777;
+        letter-spacing:.18em;text-transform:uppercase;
+        font-family:'Segoe UI',sans-serif;
+    }}
+    @keyframes fadeIn {{
+        from {{opacity:0;transform:translateY(16px);}}
+        to   {{opacity:1;transform:translateY(0);}}
+    }}
+    </style>
+    <div class="logo-container">
+        <img src="data:image/png;base64,{logo_b64}">
+        <div class="logo-subtitle">Seleziona una tabella o report dal menu</div>
+    </div>
+    """, unsafe_allow_html=True)
+    st.stop()
+
+# ── Route ─────────────────────────────────────────────────────────────────────
+if selected in REPORT_CONFIG:
+    if selected not in allowed_reports:
+        st.error("Accesso negato a questo report.")
+        st.stop()
+    reports.render(selected)
+elif selected in TABLE_CONFIG:
+    if selected not in allowed_tables:
+        st.error("Accesso negato a questa tabella.")
+        st.stop()
+    editable_table.render(selected, username)
+else:
+    st.warning(f"Selezione non riconosciuta: '{selected}'")
