@@ -5,7 +5,7 @@ USING (
         COALESCE(CAST(a.[DIAMETRO] AS VARCHAR(20)),'') + ' x ' +
         COALESCE(CAST(a.[SPESSORE] AS VARCHAR(20)),'') + ' x ' +
         COALESCE(CAST(a.[FORO] AS VARCHAR(20)),'') AS [Dimensioni],
-        a.[PEZZI_RIC], a.[PEZZI_ST], a.[D_STAMP],
+        a.[PEZZI_RIC], a.[PEZZI_ST], a.[D_PRESS] AS [D_STAMP],
         a.[ORE_PESAT], a.[ORE_MISC], a.[ORE_PRESS],
         (SELECT TOP 1 u.[firstName] + ' ' + u.[lastName]
          FROM c4_pesa p LEFT JOIN c4_utenti u ON u.[id] = p.[USER_ID]
