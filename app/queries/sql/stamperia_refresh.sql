@@ -35,4 +35,9 @@ VALUES (src.[ID],src.[ORD_CAM],src.[CHR_CAM],src.[NUM_SCHEDA],src.[SPECIFICA],sr
 UPDATE [Stamperia] SET [Temp_tot] =
     COALESCE([Temp_pesa],0)+COALESCE([Temp_misc],0)+
     COALESCE([Temp_press],0)+COALESCE([Temp_assist_press],0)
-WHERE [Data_valid] IS NULL
+WHERE [Data_valid] IS NULL;
+
+UPDATE s SET s.[Data_stamp] = a.[D_PRESS]
+FROM [Stamperia] s
+INNER JOIN c4_attivi a ON a.[ID] = s.[Id]
+WHERE a.[D_PRESS] IS NOT NULL AND s.[Data_stamp] IS NULL
