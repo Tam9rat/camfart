@@ -61,8 +61,8 @@ def run_report(query_name: str, params: dict[str, object]) -> pd.DataFrame:
     sql = load_sql(query_name)
 
     if "date_from" in params:
-        sql = sql.replace("@date_from", f"CAST('{params['date_from']}' AS DATETIME)")
-        sql = sql.replace("@date_to",   f"CAST('{params['date_to']}' AS DATETIME)")
+        sql = sql.replace("@date_from", f"'{params['date_from']}'")
+        sql = sql.replace("@date_to",   f"'{params['date_to']}'")
     if "ord_cam" in params:
         sql = sql.replace("@ord_cam", f"'{params['ord_cam']}'")
         sql = sql.replace("@chr_cam", f"'{params['chr_cam']}'")

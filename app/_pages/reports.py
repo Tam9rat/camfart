@@ -49,8 +49,8 @@ def render(report_name: str) -> None:
             st.error("La data 'Da' non può essere successiva alla data 'A'.")
             return
 
-        params["date_from"] = raw_from.strftime("%Y-%m-%d")
-        params["date_to"]   = raw_to.strftime("%Y-%m-%d")
+        params["date_from"] = raw_from.strftime("%Y%m%d")
+        params["date_to"]   = raw_to.strftime("%Y%m%d")
 
     elif "ord_cam" in rcfg["inputs"]:
         col1, col2, col3 = st.columns([2, 2, 1])
