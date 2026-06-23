@@ -61,7 +61,8 @@ WITH lav AS (
 
     UNION ALL
 
-    SELECT DISTINCT 'N/D',
+    SELECT
+        COALESCE(u.[firstName] + ' ' + u.[lastName], 'N/D'),
         a.[ORD_CAM], a.[CHR_CAM], a.[NUM_SCHEDA], a.[SPECIFICA],
         COALESCE(CAST(a.[DIAMETRO] AS VARCHAR(20)),'') + ' x ' +
         COALESCE(CAST(a.[SPESSORE] AS VARCHAR(20)),'') + ' x ' +
@@ -73,6 +74,8 @@ WITH lav AS (
         a.[N_COMPL_PRESS], a.[N_CARICATI_COTT]
     FROM c4_attivi a
     INNER JOIN t_schede s ON a.[NUM_SCHEDA] = s.[NUM_SCHEDA]
+    INNER JOIN c4_cott ct ON a.[ID] = ct.[ID_COMMESSA]
+    LEFT JOIN c4_utenti u ON u.[id] = ct.[USER_ID]
     WHERE a.[D_COTT] BETWEEN @date_from AND @date_to AND a.[N_CARICATI_COTT] IS NOT NULL
 
     UNION ALL
