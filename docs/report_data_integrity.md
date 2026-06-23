@@ -105,6 +105,25 @@ WHERE a.[D_PRESS] IS NOT NULL AND s.[Data_stamp] IS NULL
 
 ---
 
+### 8. Campo "N° Pz. Imballati" mancante nel database
+
+**Problema:** Il manuale richiede una colonna "N° Pz. Imballati" nel report "Marcate non imballate". Questa colonna **non esiste** in `c4_attivi`.
+
+**Analisi:** Le colonne disponibili in `c4_attivi` relative ai conteggi sono:
+- `N_COMPL_COLL`, `N_COMPL_PRESS`, `N_COMPL_TORN`
+- `N_SCARTI_COLL`, `N_SCARTI_COTT`, `N_SCARTI_PRESS`, `N_SCARTI_TORN`
+
+Nessuna di queste traccia il numero di pezzi imballati. La tabella `c4_coll` registra l'imballaggio come evento singolo (una riga con `TIPO='Imballaggio'`), non come conteggio pezzi.
+
+**Stato attuale:**
+- "N° Pz. Marcati" → `c4_attivi.N_COMPL_COLL` (pezzi completati in collaudo)
+- "Data Marcatura" → `MAX(c4_coll.D_FINE)` dove `TIPO='Marcatura'`
+- "Data Imballo" → `MAX(c4_coll.D_FINE)` dove `TIPO='Imballaggio'` (sempre NULL in questo report)
+
+**Azione richiesta:** Verificare con l'amministratore dell'app Camfart4 se esiste un campo per il conteggio dei pezzi imballati o se verrà aggiunto in futuro.
+
+---
+
 ## Problemi noti — dati sorgente (Camfart4)
 
 Questi problemi originano dall'applicazione Camfart4 e non possono essere corretti lato report.
