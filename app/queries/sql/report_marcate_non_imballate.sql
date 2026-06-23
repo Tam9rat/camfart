@@ -5,7 +5,8 @@ SELECT a.[ORD_CAM] AS [Ord. Camfart],a.[CHR_CAM] AS [Chr. Camfart],
     COALESCE(CAST(a.[FORO] AS VARCHAR(20)),'') AS [Dimensioni],
     a.[PEZZI_RIC] AS [Pz. Richiesti],
     a.[N_COMPL_COLL] AS [N° Pz. Marcati],
-    CAST(MAX(cm.[D_FINE]) AS DATE) AS [Data Marcatura]
+    CAST(MAX(cm.[D_FINE]) AS DATE) AS [Data Marcatura],
+    CAST(MAX(ci.[D_FINE]) AS DATE) AS [Data Imballo]
 FROM c4_attivi a
 INNER JOIN c4_coll cm ON cm.[ID_COMMESSA]=a.[ID] AND cm.[TIPO]='Marcatura'
 LEFT JOIN c4_coll ci ON ci.[ID_COMMESSA]=a.[ID] AND ci.[TIPO]='Imballaggio'
