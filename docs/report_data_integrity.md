@@ -78,6 +78,33 @@ WHERE a.[D_PRESS] IS NOT NULL AND s.[Data_stamp] IS NULL
 
 ---
 
+### 6. Errore conversione date nei report (Impasti non pesati / non miscelati)
+
+**Problema:** I report "Impasti non pesati" e "Impasti non miscelati" fallivano con errore `La conversione di un tipo di dati varchar in smalldatetime ha generato un valore non compreso nell'intervallo`. La colonna `D_ORDINE` è di tipo `smalldatetime` e il formato data `YYYY-MM-DD` non è compatibile con il locale italiano di SQL Server.
+
+**Correzione:** Cambiato il formato delle date da `YYYY-MM-DD` a `YYYYMMDD` (senza separatori), che è l'unico formato universalmente riconosciuto da SQL Server indipendentemente dal locale.
+
+**File modificati:** `reports.py`, `production.py`
+
+---
+
+### 7. Report "Marcate non imballate" — colonne errate
+
+**Problema:** Il report usava colonne sbagliate dalla tabella `c4_attivi`:
+- `N_COMPL_TORN` (pezzi completati in tornitura) come "N° Pz. Marcati"
+- `N_SCARTI_TORN` (scarti tornitura) come "N° Pz. Imballati" — sempre 0
+
+**Correzione:**
+- "N° Pz. Marcati" ora usa `N_COMPL_COLL` (pezzi completati in collaudo)
+- Aggiunta colonna "Data Marcatura" da `c4_coll` dove `TIPO='Marcatura'`
+- Il filtro ora usa `INNER JOIN c4_coll` con `TIPO='Marcatura'` e `LEFT JOIN` con `TIPO='Imballaggio'` per mostrare solo ordini marcati ma non ancora imballati
+
+**Nota:** La colonna "Data Imballo" è sempre NULL in questo report per definizione — il report mostra solo ordini non ancora imballati, quindi non esiste nessun record di imballaggio in `c4_coll`. Quando l'operatore completa l'imballaggio in Camfart4, l'ordine scompare dal report.
+
+**File modificato:** `report_marcate_non_imballate.sql`
+
+---
+
 ## Problemi noti — dati sorgente (Camfart4)
 
 Questi problemi originano dall'applicazione Camfart4 e non possono essere corretti lato report.
