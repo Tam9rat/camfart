@@ -8,7 +8,7 @@ WITH lav AS (
         COALESCE(CAST(a.[FORO] AS VARCHAR(20)),'') AS [Dimensioni],
         a.[PEZZI_RIC] AS [Pz. Richiesti], 1 AS [Fase],
         a.[N_PESAT] AS [N° Pz. Lavorati], CAST(a.[D_PESAT] AS DATE) AS [Data],
-        ROUND(CAST(DATEDIFF(SECOND, p.[D_INIZIO], p.[D_FINE]) / 3600.0 AS DECIMAL(18,2)), 2) AS [Tempo_h],
+        ROUND(CAST(DATEDIFF(SECOND, p.[D_INIZIO], p.[D_FINE]) / 60.0 AS DECIMAL(18,2)), 2) AS [Tempo_min],
         ROUND(CAST((COALESCE(a.[PEZZI_RIC],0) * COALESCE(s.[PESO_UNIT],0))
             / NULLIF(COALESCE(a.[N_IMPASTI],1), 0)
             + COALESCE(s.[SFRIDO],0) AS DECIMAL(18,6)), 2) AS [Peso_Tot_kg],
@@ -28,7 +28,7 @@ WITH lav AS (
         COALESCE(CAST(a.[SPESSORE] AS VARCHAR(20)),'') + ' x ' +
         COALESCE(CAST(a.[FORO] AS VARCHAR(20)),''),
         a.[PEZZI_RIC], 2, a.[N_MISC], CAST(a.[D_MISC] AS DATE),
-        ROUND(CAST(DATEDIFF(SECOND, cm.[D_INIZIO], cm.[D_FINE]) / 3600.0 AS DECIMAL(18,2)), 2),
+        ROUND(CAST(DATEDIFF(SECOND, cm.[D_INIZIO], cm.[D_FINE]) / 60.0 AS DECIMAL(18,2)), 2),
         ROUND(CAST((COALESCE(a.[PEZZI_RIC],0) * COALESCE(s.[PESO_UNIT],0))
             / NULLIF(COALESCE(a.[N_IMPASTI],1), 0)
             + COALESCE(s.[SFRIDO],0) AS DECIMAL(18,6)), 2),
@@ -48,7 +48,7 @@ WITH lav AS (
         COALESCE(CAST(a.[SPESSORE] AS VARCHAR(20)),'') + ' x ' +
         COALESCE(CAST(a.[FORO] AS VARCHAR(20)),''),
         a.[PEZZI_RIC], 3, a.[N_COMPL_PRESS], CAST(a.[D_PRESS] AS DATE),
-        ROUND(CAST(p.[TEMPO_PRESS] / 3600.0 AS DECIMAL(18,2)), 2),
+        ROUND(CAST(p.[TEMPO_PRESS] / 60.0 AS DECIMAL(18,2)), 2),
         ROUND(CAST((COALESCE(a.[PEZZI_RIC],0) * COALESCE(s.[PESO_UNIT],0))
             / NULLIF(COALESCE(a.[N_IMPASTI],1), 0)
             + COALESCE(s.[SFRIDO],0) AS DECIMAL(18,6)), 2),
@@ -68,7 +68,7 @@ WITH lav AS (
         COALESCE(CAST(a.[SPESSORE] AS VARCHAR(20)),'') + ' x ' +
         COALESCE(CAST(a.[FORO] AS VARCHAR(20)),''),
         a.[PEZZI_RIC], 11, a.[N_CARICATI_COTT], CAST(a.[D_COTT] AS DATE),
-        ROUND(CAST(a.[ORE_COTT] / 60.0 AS DECIMAL(18,2)), 2),
+        a.[ORE_COTT],
         ROUND(CAST((COALESCE(a.[PEZZI_RIC],0) * COALESCE(s.[PESO_UNIT],0))
             / NULLIF(COALESCE(a.[N_IMPASTI],1), 0)
             + COALESCE(s.[SFRIDO],0) AS DECIMAL(18,6)), 2),
@@ -94,7 +94,7 @@ WITH lav AS (
             WHEN 'Rettifica esterna' THEN 25 WHEN 'Profilatura' THEN 26
         END,
         a.[N_COMPL_TORN], CAST(a.[D_TORN] AS DATE),
-        ROUND(CAST(t.[TEMPO_LAVORAZIONE] / 60.0 AS DECIMAL(18,2)), 2),
+        t.[TEMPO_LAVORAZIONE],
         ROUND(CAST((COALESCE(a.[PEZZI_RIC],0) * COALESCE(s.[PESO_UNIT],0))
             / NULLIF(COALESCE(a.[N_IMPASTI],1), 0)
             + COALESCE(s.[SFRIDO],0) AS DECIMAL(18,6)), 2),
@@ -121,7 +121,7 @@ WITH lav AS (
             WHEN 'Marcatura' THEN 34 WHEN 'Imballaggio' THEN 35
         END,
         a.[N_COMPL_COLL], CAST(a.[D_COLL] AS DATE),
-        ROUND(CAST(c.[TEMPO_LAVORAZIONE] / 60.0 AS DECIMAL(18,2)), 2),
+        c.[TEMPO_LAVORAZIONE],
         ROUND(CAST((COALESCE(a.[PEZZI_RIC],0) * COALESCE(s.[PESO_UNIT],0))
             / NULLIF(COALESCE(a.[N_IMPASTI],1), 0)
             + COALESCE(s.[SFRIDO],0) AS DECIMAL(18,6)), 2),
