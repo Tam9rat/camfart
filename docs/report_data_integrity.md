@@ -163,6 +163,25 @@ Il problema è concentrato su `c4_pesa` (pesatura) con 66 righe senza operatore.
 
 Esempio: ORD_CAM 134304, riga ID 11285 — `D_INIZIO` registrato ma `D_FINE` e `USER_ID` entrambi NULL. Operazione mai completata. Il report mostra `Tempo_min = NULL` e `Operatore = N/D`.
 
+### D. Sessioni di pressatura aperte/chiuse istantaneamente (tempi ~0)
+
+Per alcuni ordini compaiono più righe di pressatura con `TEMPO_PRESS` di 1–2 secondi, tutte registrate nello stesso minuto. **Non sono duplicati**: sono sessioni distinte con ID diversi.
+
+**Esempio concreto — ORD_CAM 134741 e 134743 (27/05/2026):**
+
+| ORD_CAM | ID | D_INIZIO | D_FINE | Secondi |
+|---------|----|----------|--------|---------|
+| 134743 | 25224 | 05:56:18.087 | 05:56:19.453 | 1 |
+| 134743 | 25225 | 05:56:20.377 | 05:56:21.050 | 1 |
+| 134743 | 25226 | 05:56:21.777 | 05:56:22.380 | 1 |
+| 134743 | 25227 | 05:56:23.177 | 05:56:23.737 | 0 |
+| 134741 | 25232 | 07:16:55.807 | 07:16:57.333 | 2 |
+| 134741 | 25233 | 07:16:58.000 | 07:16:58.737 | 0 |
+| 134741 | 25234 | 07:16:59.430 | 07:16:59.957 | 0 |
+| 134741 | 25235 | 07:17:00.630 | 07:17:01.200 | 1 |
+
+Causa: l'operatore ha aperto e chiuso la sessione di pressatura in Camfart4 più volte in rapida successione (entro 5–6 secondi totali) senza eseguire la lavorazione. Il report mostra i dati corretti così come registrati dal sistema.
+
 ---
 
 ## Mappa sorgenti Tempo_min per fase

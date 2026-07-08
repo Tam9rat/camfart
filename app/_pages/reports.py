@@ -66,7 +66,7 @@ def render(report_name: str) -> None:
             run = False
         else:
             try:
-                params["ord_cam"] = float(ord_str)
+                params["ord_cam"] = int(ord_str)
             except ValueError:
                 st.error("Ord. Camfart deve essere un numero.")
                 return
