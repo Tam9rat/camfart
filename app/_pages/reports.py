@@ -29,7 +29,20 @@ def render(report_name: str) -> None:
         st.warning(f"Report non trovato: '{report_name}'")
         return
 
-    st.markdown(f"### {report_name}")
+    if not rcfg["inputs"]:
+        col_title, col_search = st.columns([4, 4])
+        with col_title:
+            st.markdown(f"### {report_name}")
+        with col_search:
+            search = st.text_input(
+                "Cerca",
+                placeholder="Cerca in tutte le colonne...",
+                label_visibility="collapsed",
+                key=f"search_{report_name}",
+            )
+    else:
+        st.markdown(f"### {report_name}")
+        search = None
     st.divider()
 
     params: dict[str, object] = {}
@@ -87,19 +100,11 @@ def render(report_name: str) -> None:
         st.error(f"Errore nel report: {exc}")
         return
 
-    # Search bar for reports with no input filters (e.g. Marcate non imballate)
-    if not rcfg["inputs"]:
-        search = st.text_input(
-            "Cerca",
-            placeholder="Cerca in tutte le colonne...",
-            label_visibility="collapsed",
-            key=f"search_{report_name}",
-        )
-        if search:
-            mask = df.astype(str).apply(
-                lambda col: col.str.contains(search, case=False, na=False)
-            ).any(axis=1)
-            df = df[mask]
+    if search:
+        mask = df.astype(str).apply(
+            lambda col: col.str.contains(search, case=False, na=False)
+        ).any(axis=1)
+        df = df[mask]
 
     st.dataframe(df, use_container_width=True, height=650)
 
